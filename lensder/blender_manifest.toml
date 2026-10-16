@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+id = "lensder"
+version = "0.1.0"
+name = "Lensder"
+tagline = "Real camera bodies and lenses: radial, anamorphic, fisheye"
+maintainer = "Lensder contributors"
+type = "add-on"
+
+blender_version_min = "5.0.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+tags = ["Camera", "Render"]
+
+[permissions]
+files = "Export ST-maps (OpenEXR) chosen by the user"

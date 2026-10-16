@@ -89,9 +89,28 @@ def test_stmap_full_coverage_with_required_overscan():
 def test_stmap_matches_ray_mapping():
     st = _state("TDE_ANAMORPHIC", cx02=0.05, cy02=0.02)
     s = S.required_overscan(st)
-    m = S.bake(st, 40, 24, s)
+    m = S.bake(st, 40, 24, s, step=1)
     j, i = 5, 33
     px = ((i + 0.5) / 40 - 0.5) * st.frame_w
     py = ((j + 0.5) / 24 - 0.5) * st.frame_h
     dx, dy, dz, _ = L.film_to_ray(st, np.array([px]), np.array([py]))
     assert m[j, i, 0] == pytest.approx(0.5 + 35 * dx[0] / dz[0] / (st.frame_w * s), abs=1e-6)
+
+
+@pytest.mark.parametrize("model,params", [
+    ("BROWN", dict(k1=-0.12, k2=0.02, p1=0.002)),
+    ("TDE_ANAMORPHIC", dict(cx02=0.06, cy02=0.03, cx04=0.01)),
+    ("FISHEYE", dict(fish_proj=1, fish_fov=180.0)),
+])
+def test_lattice_bake_matches_exact(model, params):
+    st = _state(model, **params)
+    if model == "FISHEYE":
+        st.focal = 8.0
+    s = S.required_overscan(st)
+    exact = S.bake(st, 160, 90, s, step=1)
+    fast = S.bake(st, 160, 90, s, step=4)
+    both = (exact[..., 2] == 1) & (fast[..., 2] == 1)
+    # UV error in pixels of the pinhole render
+    err_px = np.abs(exact[..., :2] - fast[..., :2])[both] * np.array([160, 90]) * s
+    assert err_px.max() < 0.02
+    assert (exact[..., 2] != fast[..., 2]).mean() < 0.002  # coverage edge agrees

@@ -154,32 +154,40 @@ def newton_inverse(func, tx, ty, iterations=30, tol=1e-10, eps=1e-6):
     Uses a central-difference Jacobian, so it works for every model. Returns
     ``(x, y, converged_mask)``.
     """
-    tx = np.asarray(tx, dtype=np.float64)
-    ty = np.asarray(ty, dtype=np.float64)
+    shape = np.shape(tx)
+    tx = np.asarray(tx, dtype=np.float64).ravel()
+    ty = np.asarray(ty, dtype=np.float64).ravel()
     x = tx.copy()
     y = ty.copy()
-    done = np.zeros(tx.shape, dtype=bool)
+    active = np.arange(tx.size)  # only iterate points that have not converged
     for _ in range(iterations):
-        fx, fy = func(x, y)
-        ex, ey = fx - tx, fy - ty
-        done = (np.abs(ex) < tol) & (np.abs(ey) < tol)
-        if done.all():
+        if active.size == 0:
             break
-        ax, ay = func(x + eps, y)
-        bx, by = func(x - eps, y)
-        cx, cy = func(x, y + eps)
-        dx, dy = func(x, y - eps)
+        xa, ya = x[active], y[active]
+        fx, fy = func(xa, ya)
+        ex, ey = fx - tx[active], fy - ty[active]
+        moving = ~((np.abs(ex) < tol) & (np.abs(ey) < tol))
+        active, xa, ya, ex, ey = active[moving], xa[moving], ya[moving], ex[moving], ey[moving]
+        if active.size == 0:
+            break
+        ax, ay = func(xa + eps, ya)
+        bx, by = func(xa - eps, ya)
+        cx, cy = func(xa, ya + eps)
+        dx, dy = func(xa, ya - eps)
         j11 = (ax - bx) / (2 * eps)
         j21 = (ay - by) / (2 * eps)
         j12 = (cx - dx) / (2 * eps)
         j22 = (cy - dy) / (2 * eps)
         det = j11 * j22 - j12 * j21
-        bad = np.abs(det) < 1e-12
-        det = np.where(bad, 1.0, det)
-        sx = (j22 * ex - j12 * ey) / det
-        sy = (-j21 * ex + j11 * ey) / det
-        x = np.where(done | bad, x, x - sx)
-        y = np.where(done | bad, y, y - sy)
+        good = np.abs(det) >= 1e-12
+        active, xa, ya, ex, ey = active[good], xa[good], ya[good], ex[good], ey[good]
+        j11, j12, j21, j22, det = j11[good], j12[good], j21[good], j22[good], det[good]
+        x[active] = xa - (j22 * ex - j12 * ey) / det
+        y[active] = ya - (-j21 * ex + j11 * ey) / det
+    x = x.reshape(shape)
+    y = y.reshape(shape)
+    tx = tx.reshape(shape)
+    ty = ty.reshape(shape)
     fx, fy = func(x, y)
     ok = (np.abs(fx - tx) < 1e-6) & (np.abs(fy - ty) < 1e-6) & np.isfinite(x) & np.isfinite(y)
     # Reject solutions beyond the fold of the lens map: a valid inverse lies on

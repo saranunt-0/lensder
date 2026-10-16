@@ -38,8 +38,13 @@ _BODY = r"""
 
   float focus_dist = 0.0;
   getattribute("cam:focal_distance", focus_dist);
+  float aperture = 0.0;
+  getattribute("cam:aperture_size", aperture);
+  /* With depth of field off, Cycles reports a tiny (1e-5) focus distance, not 0:
+   * treat "DOF off" as focused at infinity, like the Python reference. */
+  int dof_on = aperture > 0.0 && focus_dist > 1e-3;
   float f_eff = focal_length;
-  if (breathing != 0.0 && focus_dist > 0.0) {
+  if (breathing != 0.0 && dof_on) {
     float d_mm = focus_dist * 1000.0;
     f_eff = focal_length * (1.0 + breathing * focal_length / max(d_mm - focal_length, focal_length * 0.05));
   }
@@ -181,9 +186,7 @@ _BODY = r"""
   throughput = color(vig);
 
   /* Thin-lens depth of field; aperture radius f / (2N), focus plane at focus_dist. */
-  float aperture = 0.0;
-  getattribute("cam:aperture_size", aperture);
-  if (aperture > 0.0 && focus_dist > 0.0) {
+  if (dof_on) {
     point lens_p = point(0.0);
     getattribute("cam:aperture_position", lens_p);
     lens_p *= focal_length * 1e-3;
