@@ -307,7 +307,7 @@ def _make_panels(prefix, space, region, extra):
             }
             if header is not None:
                 attrs["draw_header"] = lambda self, context: header(self.layout, _cam_object(context))
-            attrs.update({k: v for k, v in extra.items() if k == "bl_category"})
+            attrs.update({k: v for k, v in extra.items() if k in ("bl_category", "bl_context")})
             return type(f"{prefix}_PT_lensder_{sid.lower()}", (bpy.types.Panel,), attrs)
         classes.append(make())
     return classes
