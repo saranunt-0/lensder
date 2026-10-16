@@ -7,6 +7,7 @@ from .core import overlay_geom
 
 _handle = None
 _cache = {"key": None, "lines": [], "frame": []}
+_reported = False
 
 
 def invalidate():
@@ -36,6 +37,16 @@ def _segments(polylines, to_px):
 
 
 def _draw():
+    global _reported
+    try:
+        _draw_overlay()
+    except Exception as ex:  # never spam the console on every redraw
+        if not _reported:
+            _reported = True
+            print("Lensder: viewport overlay error (further errors suppressed):", repr(ex))
+
+
+def _draw_overlay():
     ctx = bpy.context
     rv3d = getattr(ctx, "region_data", None)
     scene = ctx.scene

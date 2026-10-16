@@ -398,3 +398,18 @@ def test_compositor_rebakes_per_frame_during_animation_render():
         img = H.load(os.path.join(H.TMP, f"anim_comp_{f:04d}.exr"))
         ang, ok = _angles_vs_reference(img, ob)
         assert ang[ok].max() < _pixel_tolerance_deg(ob, 0.25), (f, ang[ok].max())
+
+
+def test_duplicated_camera_has_independent_lens():
+    ob, cam = _cam(lens=24.0)
+    cam.lensder.mode = "ADVANCED"
+    idprops.set(cam, "k1", -0.1)
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.duplicate()
+    dup = bpy.context.active_object
+    assert dup.data != cam
+    idprops.set(dup.data, "k1", -0.3)
+    assert _evaluated_custom(cam, "k1") == pytest.approx(-0.1)
+    assert _evaluated_custom(dup.data, "k1") == pytest.approx(-0.3)

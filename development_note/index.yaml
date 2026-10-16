@@ -1,0 +1,16 @@
+# development_note/index.yaml
+last_updated: "2026-10-16"
+modules:
+  - name: research
+    path: modules/research/timeline.md
+    description: "Lens-model and Blender 5.2 capability research; what was verified and how"
+  - name: core
+    path: modules/core/timeline.md
+    description: "Pure-Python lens maths, presets, ST-map baking, OSL shader generator"
+  - name: addon
+    path: modules/addon/timeline.md
+    description: "Blender add-on: properties, drivers, backends, handlers, UI; debugging log"
+standalone:
+  - name: architecture
+    path: architecture.md
+    description: "System overview, data flow, key decisions and why"

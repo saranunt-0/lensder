@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"  # bpy 5.2 wheels are cp313
+
+      - name: System libraries for the bpy wheel
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libgl1 libx11-6
+
+      - name: Install Blender as a Python module
+        run: pip install bpy==5.2.2 numpy pytest
+
+      - name: Tests (maths + headless Blender, Cycles CPU)
+        run: python -m pytest tests -q -W ignore::pytest.PytestUnraisableExceptionWarning
+
+      - name: Build extension
+        run: |
+          BPY=$(python -c "import os, bpy; print(bpy.utils.resource_path('LOCAL'))")
+          python "$BPY/scripts/addons_core/bl_pkg/cli/blender_ext.py" validate lensder
+          mkdir -p dist
+          python "$BPY/scripts/addons_core/bl_pkg/cli/blender_ext.py" build --source-dir lensder --output-dir dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lensder-extension
+          path: dist/*.zip
